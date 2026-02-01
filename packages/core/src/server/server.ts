@@ -37,6 +37,9 @@ const mergeWithUnion = <T extends object, S extends object>(
   });
 };
 
+/**
+ * Tool input/output/metadata definition for type inference.
+ */
 export type ToolDef<
   TInput = unknown,
   TOutput = unknown,
@@ -107,10 +110,16 @@ type McpAppsResourceMeta = {
 type ResourceMeta = OpenaiResourceMeta | McpAppsResourceMeta;
 
 /** User-provided resource configuration with optional CSP override */
+/**
+ * Widget resource metadata provided by the user.
+ */
 export type WidgetResourceMeta = {
   ui?: ExtendedMcpUiResourceMeta;
 } & Resource["_meta"];
 
+/**
+ * Supported widget host types.
+ */
 export type WidgetHostType = "apps-sdk" | "mcp-app";
 
 type WidgetResourceConfig<T extends ResourceMeta = ResourceMeta> = {
@@ -208,6 +217,9 @@ type ToolHandler<
   extra: RequestHandlerExtra<ServerRequest, ServerNotification>,
 ) => TReturn | Promise<TReturn>;
 
+/**
+ * MCP server wrapper with widget registration helpers.
+ */
 export class McpServer<
   TTools extends Record<string, ToolDef> = Record<never, ToolDef>,
 > extends McpServerBase {
@@ -398,6 +410,8 @@ export class McpServer<
           process.env.SKYBRIDGE_USE_FORWARDED_HOST === "true";
         const isClaude =
           extra?.requestInfo?.headers?.["user-agent"] === "Claude-User";
+        const parsedPort = Number.parseInt(process.env.PORT ?? "", 10);
+        const port = Number.isFinite(parsedPort) ? parsedPort : 3000;
 
         const hostFromHeaders =
           extra?.requestInfo?.headers?.["x-forwarded-host"] ??
@@ -407,7 +421,7 @@ export class McpServer<
 
         const serverUrl = useExternalHost
           ? `https://${hostFromHeaders}`
-          : "http://localhost:3000";
+          : `http://localhost:${port}`;
 
         const html = isProduction
           ? templateHelper.renderProduction({

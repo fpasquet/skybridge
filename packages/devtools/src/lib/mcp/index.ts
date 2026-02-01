@@ -7,7 +7,17 @@ import { McpClient } from "./client.js";
 
 const client = new McpClient();
 
-client.connect("http://localhost:3000/mcp").then(() => {
+const resolveMcpServerUrl = (): string => {
+  if (typeof window !== "undefined") {
+    return `${window.location.origin}/mcp`;
+  }
+
+  const parsedPort = Number.parseInt(process.env.PORT ?? "", 10);
+  const port = Number.isFinite(parsedPort) ? parsedPort : 3000;
+  return `http://localhost:${port}/mcp`;
+};
+
+client.connect(resolveMcpServerUrl()).then(() => {
   console.info("Connected to MCP server");
 });
 
@@ -35,6 +45,9 @@ const defaultOpenaiObject: AppsSdkContext = {
   widgetState: null,
 };
 
+/**
+ * Fetch the tool list with suspense enabled.
+ */
 export const useSuspenseTools = () => {
   const { data } = useSuspenseQuery<Tool[]>({
     queryKey: ["list-tools"],
@@ -43,10 +56,16 @@ export const useSuspenseTools = () => {
   return data;
 };
 
+/**
+ * Read the connected MCP server info.
+ */
 export const useServerInfo = () => {
   return client.getServerInfo();
 };
 
+/**
+ * Execute a tool call mutation against the MCP server.
+ */
 export const useCallTool = () => {
   const { setToolData } = useStore();
 
@@ -86,6 +105,9 @@ export const useCallTool = () => {
   });
 };
 
+/**
+ * Select the currently active tool or return null when none is selected.
+ */
 export const useSelectedToolOrNull = () => {
   const [selectedTool] = useSelectedToolName();
   const tools = useSuspenseTools();
@@ -93,6 +115,9 @@ export const useSelectedToolOrNull = () => {
   return tools.find((t) => t.name === selectedTool) ?? null;
 };
 
+/**
+ * Select the currently active tool or throw when none is selected.
+ */
 export const useSelectedTool = () => {
   const tool = useSelectedToolOrNull();
   if (!tool) {
@@ -101,6 +126,9 @@ export const useSelectedTool = () => {
   return tool;
 };
 
+/**
+ * Fetch a resource by URI with suspense enabled.
+ */
 export const useSuspenseResource = (uri?: string) => {
   return useSuspenseQuery({
     queryKey: ["resource", uri],
@@ -114,4 +142,7 @@ export const useSuspenseResource = (uri?: string) => {
   });
 };
 
+/**
+ * Shared MCP client instance.
+ */
 export default client;
