@@ -1,15 +1,47 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { Command } from "@oclif/core";
+import { Command, Flags } from "@oclif/core";
 import { runCommand } from "../cli/run-command.js";
 
+/**
+ * Resolve the port number for the production server.
+ */
+const resolvePort = (
+  flagPort: number | undefined,
+  envPort: string | undefined,
+  fallbackPort: number,
+): number => {
+  if (typeof flagPort === "number" && Number.isFinite(flagPort)) {
+    return flagPort;
+  }
+
+  if (envPort) {
+    const parsedPort = Number.parseInt(envPort, 10);
+    if (Number.isFinite(parsedPort)) {
+      return parsedPort;
+    }
+  }
+
+  return fallbackPort;
+};
+
+/**
+ * Production server command.
+ */
 export default class Start extends Command {
   static override description = "Start production server";
   static override examples = ["skybridge start"];
-  static override flags = {};
+  static override flags = {
+    port: Flags.integer({
+      char: "p",
+      description: "Port to run the production server on.",
+    }),
+  };
 
   public async run(): Promise<void> {
     console.clear();
+    const { flags } = await this.parse(Start);
+    const port = resolvePort(flags.port, process.env.PORT, 3000);
 
     const distPath = resolve(process.cwd(), "dist/index.js");
     if (!existsSync(distPath)) {
@@ -25,12 +57,12 @@ export default class Start extends Command {
       `\x1b[36m\x1b[1m⛰  Welcome to Skybridge\x1b[0m \x1b[36mv${this.config.version}\x1b[0m`,
     );
     console.log(
-      `Server running at: \x1b[32m\x1b[1mhttp://localhost:3000/mcp\x1b[0m`,
+      `Server running at: \x1b[32m\x1b[1mhttp://localhost:${port}/mcp\x1b[0m`,
     );
 
     await runCommand("node dist/index.js", {
       stdio: ["ignore", "inherit", "inherit"],
-      env: { ...process.env, NODE_ENV: "production" },
+      env: { ...process.env, NODE_ENV: "production", PORT: String(port) },
     });
   }
 }
